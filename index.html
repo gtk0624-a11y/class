@@ -2,223 +2,298 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>곡선중학교 학급 통합 관리 시스템</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>곡선중학교 전문 출결 관리 시스템</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&display=swap');
-        body { font-family: 'Pretendard', sans-serif; -webkit-tap-highlight-color: transparent; }
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;900&display=swap');
+        body { font-family: 'Pretendard', sans-serif; -webkit-tap-highlight-color: transparent; letter-spacing: -0.02em; }
+        .attendance-card { transition: all 0.2s ease; }
+        /* 미인정 누적 횟수별 테마 */
+        .level-low { background-color: #ffffff; border-color: #e2e8f0; }
+        .level-warning { background-color: #fff7ed; border: 2px solid #fb923c !important; } /* 3회 이상: 주황 */
+        .level-danger { background-color: #fef2f2; border: 2px solid #ef4444 !important; }  /* 5회 이상: 빨강 */
+        .level-critical { background-color: #450a0a; border: 2px solid #000000 !important; color: white !important; } /* 9회 이상: 검정/진홍 */
+        .level-critical .sub-text { color: #fca5a5 !important; }
+        
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
         .modal.active { display: flex; }
-        .warning-card { background-color: #fee2e2 !important; border: 2px solid #f87171 !important; }
     </style>
 </head>
-<body class="bg-slate-50 pb-28 text-slate-800">
+<body class="bg-slate-100 pb-28 text-slate-900">
 
-    <header class="bg-indigo-700 text-white p-5 sticky top-0 z-50 shadow-md">
+    <header class="bg-indigo-800 text-white p-6 sticky top-0 z-50 shadow-lg">
         <div class="max-w-md mx-auto flex justify-between items-center">
-            <div class="text-left">
-                <h1 class="text-lg font-black tracking-tighter">곡선중학교</h1>
-                <p class="text-[10px] opacity-80 font-bold uppercase tracking-widest">학급 통합 관리 시스템</p>
+            <div>
+                <h1 class="text-xl font-black italic">곡선중 ATTENDANCE</h1>
+                <input type="date" id="currentDate" onchange="initDay()" class="bg-transparent text-sm font-bold outline-none border-none">
             </div>
-            <button onclick="toggleModal('setupModal', true)" class="text-[11px] font-bold bg-white/20 px-4 py-2 rounded-xl backdrop-blur-md border border-white/30">명단 관리</button>
+            <button onclick="toggleModal('setupModal', true)" class="bg-white/10 p-2 rounded-lg text-xs font-bold border border-white/20">명단설정</button>
         </div>
     </header>
 
-    <main class="max-w-md mx-auto p-4 space-y-6">
-        <div id="tab1" class="tab-content active space-y-3"></div>
-        <div id="tab2" class="tab-content space-y-4">
-            <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 text-center space-y-3">
-                <div class="flex justify-between items-center"><span class="text-[10px] font-black text-indigo-500 uppercase">Score Sheet</span><button onclick="downloadTotalData()" class="text-[10px] font-bold text-slate-400 border px-2 py-1 rounded-lg">CSV 출력</button></div>
-                <input type="text" id="subjectTitle" onchange="save()" placeholder="수행평가 항목명" class="w-full text-xl font-bold border-none outline-none p-0 text-slate-800 bg-transparent text-center focus:ring-0">
+    <main class="max-w-md mx-auto p-4 space-y-4">
+        <!-- 탭 1: 오늘 출결 체크 -->
+        <div id="tab1" class="tab-content active space-y-3">
+            <div class="flex justify-between items-center px-1">
+                <h2 class="font-black text-slate-700">오늘의 출결 현황</h2>
+                <span id="statsSummary" class="text-[10px] font-bold bg-slate-200 px-2 py-1 rounded-md text-slate-600"></span>
             </div>
-            <div id="scoreList" class="space-y-2"></div>
+            <div id="dailyList" class="space-y-3"></div>
         </div>
-        <div id="tab3" class="tab-content space-y-4 text-center">
-            <div class="flex justify-between items-center px-1"><h2 class="font-bold text-slate-700">좌석 배치도</h2><button onclick="shuffleSeats()" class="text-xs font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-full">랜덤 섞기</button></div>
-            <div id="seatMap" class="grid grid-cols-2 gap-4"></div>
+
+        <!-- 탭 2: 누적 통계 리포트 -->
+        <div id="tab2" class="tab-content space-y-4">
+            <div class="bg-white p-6 rounded-[2rem] shadow-sm text-center">
+                <h2 class="text-xs font-black text-indigo-500 uppercase tracking-widest mb-2">Cumulative Status</h2>
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="bg-slate-50 p-3 rounded-2xl"><p class="text-[10px] text-slate-400 font-bold">전체 미인정</p><p id="totalUnpaid" class="text-lg font-black text-rose-600">0</p></div>
+                    <div class="bg-slate-50 p-3 rounded-2xl"><p class="text-[10px] text-slate-400 font-bold">전체 질병</p><p id="totalSickness" class="text-lg font-black text-amber-600">0</p></div>
+                    <div class="bg-slate-50 p-3 rounded-2xl"><p class="text-[10px] text-slate-400 font-bold">전체 인정</p><p id="totalApproved" class="text-lg font-black text-emerald-600">0</p></div>
+                </div>
+            </div>
+            <div id="cumulativeList" class="space-y-2"></div>
         </div>
-        <div id="tab4" class="tab-content space-y-4">
-            <div class="flex justify-between items-center px-2"><h2 class="font-bold text-slate-700">전체 기록</h2><span class="text-[9px] text-slate-400 font-bold">터치하여 기록 정정/삭제</span></div>
-            <div id="logs" class="space-y-3"></div>
+
+        <!-- 탭 3: 증빙 서류 및 로그 -->
+        <div id="tab3" class="tab-content space-y-3">
+            <div class="flex justify-between items-center px-2">
+                <h2 class="font-bold text-slate-700">전체 출결 로그</h2>
+                <button onclick="exportCSV()" class="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-3 py-1 rounded-md">데이터 내보내기</button>
+            </div>
+            <div id="allLogs" class="space-y-3"></div>
         </div>
     </main>
 
-    <!-- [명단 관리 모달 - 복사 붙여넣기 최적화] -->
+    <!-- [출결 입력 모달] -->
+    <div id="attModal" class="modal">
+        <div class="bg-white rounded-[2.5rem] p-8 w-full max-w-sm space-y-5 shadow-2xl overflow-y-auto max-h-[90vh]">
+            <div class="text-center">
+                <h2 id="attModalTitle" class="font-black text-2xl text-slate-800"></h2>
+                <p class="text-xs text-slate-400 font-bold mt-1">출결 사유를 선택하세요</p>
+            </div>
+            
+            <div class="space-y-4">
+                <div class="space-y-2">
+                    <p class="text-[10px] font-black text-rose-500 ml-1">UNPAID (미인정)</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="recordAtt('미인정 결석')" class="py-3 bg-rose-50 text-rose-600 rounded-xl font-bold text-xs border border-rose-100">결석</button>
+                        <button onclick="recordAtt('미인정 지각')" class="py-3 bg-rose-50 text-rose-600 rounded-xl font-bold text-xs border border-rose-100">지각</button>
+                        <button onclick="recordAtt('미인정 조퇴')" class="py-3 bg-rose-50 text-rose-600 rounded-xl font-bold text-xs border border-rose-100">조퇴</button>
+                        <button onclick="recordAtt('미인정 결과')" class="py-3 bg-rose-50 text-rose-600 rounded-xl font-bold text-xs border border-rose-100">결과</button>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <p class="text-[10px] font-black text-amber-500 ml-1">SICKNESS (질병)</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="recordAtt('질병 결석')" class="py-3 bg-amber-50 text-amber-600 rounded-xl font-bold text-xs border border-amber-100">결석</button>
+                        <button onclick="recordAtt('질병 지각')" class="py-3 bg-amber-50 text-amber-600 rounded-xl font-bold text-xs border border-amber-100">지각</button>
+                        <button onclick="recordAtt('질병 조퇴')" class="py-3 bg-amber-50 text-amber-600 rounded-xl font-bold text-xs border border-amber-100">조퇴</button>
+                        <button onclick="recordAtt('질병 결과')" class="py-3 bg-amber-50 text-amber-600 rounded-xl font-bold text-xs border border-amber-100">결과</button>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <p class="text-[10px] font-black text-emerald-500 ml-1">APPROVED (공결/인정)</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="recordAtt('인정 결석')" class="py-3 bg-emerald-50 text-emerald-600 rounded-xl font-bold text-xs border border-emerald-100">결석</button>
+                        <button onclick="recordAtt('인정 지각')" class="py-3 bg-emerald-50 text-emerald-600 rounded-xl font-bold text-xs border border-emerald-100">지각</button>
+                        <button onclick="recordAtt('인정 조퇴')" class="py-3 bg-emerald-50 text-emerald-600 rounded-xl font-bold text-xs border border-emerald-100">조퇴</button>
+                        <button onclick="recordAtt('인정 결과')" class="py-3 bg-emerald-50 text-emerald-600 rounded-xl font-bold text-xs border border-emerald-100">결과</button>
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t">
+                    <p class="text-[10px] font-black text-slate-400 mb-2">특이사항 및 증빙자료</p>
+                    <textarea id="noteText" class="w-full bg-slate-100 rounded-xl p-3 text-sm outline-none mb-2" placeholder="사유 또는 증빙 서류 확인 정보 (예: OO병원 진료확인서 제출 완료)"></textarea>
+                    <div class="flex items-center gap-2">
+                        <input type="file" id="photoFile" accept="image/*" class="hidden" onchange="handleFile(this)">
+                        <button onclick="document.getElementById('photoFile').click()" class="flex-1 bg-slate-800 text-white py-4 rounded-xl font-bold text-xs"><i class="fas fa-camera mr-2"></i>증빙 사진 첨부</button>
+                    </div>
+                    <div id="filePreview" class="mt-2 text-[10px] text-indigo-600 font-bold"></div>
+                </div>
+            </div>
+            
+            <button onclick="toggleModal('attModal', false)" class="w-full py-2 text-slate-400 text-xs font-bold mt-2 text-center">입력 취소</button>
+        </div>
+    </div>
+
+    <!-- 명단 설정 모달 -->
     <div id="setupModal" class="modal">
-        <div class="bg-white rounded-[2.5rem] p-8 w-full max-w-sm space-y-5 shadow-2xl">
-            <div class="text-center"><h2 class="font-black text-xl text-slate-800">학생 명단 관리</h2><p class="text-[10px] text-slate-400 mt-1">한글 파일의 표 내용을 복사해 붙이세요!</p></div>
-            <textarea id="rawList" class="w-full h-48 bg-slate-50 border-0 rounded-2xl p-5 text-sm outline-none shadow-inner" placeholder="예: 30201 강민준"></textarea>
+        <div class="bg-white rounded-[2rem] p-8 w-full max-w-sm space-y-4 shadow-2xl text-center">
+            <h2 class="font-black text-xl">학생 명단 관리</h2>
+            <textarea id="rawList" class="w-full h-40 bg-slate-50 rounded-xl p-4 text-xs outline-none" placeholder="번호 성명 (예: 30201 홍길동)"></textarea>
             <div class="flex gap-2">
-                <button onclick="importStudents()" class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg">명단 적용</button>
-                <button onclick="if(confirm('모든 기록이 초기화됩니다.')){students=[];logs=[];save();}" class="flex-1 bg-rose-50 text-rose-500 py-4 rounded-2xl font-bold text-xs">전체 삭제</button>
+                <button onclick="importStudents()" class="flex-1 bg-indigo-600 text-white py-4 rounded-xl font-bold">적용</button>
+                <button onclick="localStorage.clear(); location.reload();" class="flex-1 bg-rose-50 text-rose-500 py-4 rounded-xl font-bold text-xs text-center">초기화</button>
             </div>
-            <button onclick="toggleModal('setupModal', false)" class="w-full text-slate-400 text-xs py-1">닫기</button>
+            <button onclick="toggleModal('setupModal', false)" class="text-slate-300 text-xs">닫기</button>
         </div>
     </div>
 
-    <!-- [상담/출결 입력 모달] -->
-    <div id="logModal" class="modal">
-        <div class="bg-white rounded-[2.5rem] p-8 w-full max-w-sm space-y-4 shadow-2xl">
-            <h2 id="logModalTitle" class="font-black text-2xl text-center text-indigo-600"></h2>
-            <div class="grid grid-cols-1 gap-2">
-                <button onclick="addAttendance('미인정 지각')" class="py-3 rounded-xl border-2 border-orange-100 bg-orange-50 text-orange-600 font-black text-sm">미인정 지각</button>
-                <button onclick="addAttendance('미인정 조퇴')" class="py-3 rounded-xl border-2 border-amber-100 bg-amber-50 text-amber-600 font-black text-sm">미인정 조퇴</button>
-                <button onclick="addAttendance('미인정 결과')" class="py-3 rounded-xl border-2 border-rose-100 bg-rose-50 text-rose-600 font-black text-sm">미인정 결과</button>
-            </div>
-            <div class="border-t pt-3 space-y-2">
-                <textarea id="logText" class="w-full h-20 bg-slate-50 border-0 rounded-2xl p-4 text-sm outline-none" placeholder="기타 상담 내용..."></textarea>
-                <button onclick="submitLog()" class="w-full bg-slate-800 text-white py-3 rounded-2xl font-bold">상담 저장</button>
-            </div>
-            <button onclick="toggleModal('logModal', false)" class="w-full text-slate-400 text-xs text-center">닫기</button>
-        </div>
-    </div>
-
-    <!-- [기록 정정 모달] -->
-    <div id="editLogModal" class="modal">
-        <div class="bg-white rounded-[2.5rem] p-8 w-full max-w-sm space-y-4 shadow-2xl">
-            <h2 class="font-black text-xl text-center">기록 정정 및 삭제</h2>
-            <textarea id="editLogText" class="w-full h-32 bg-slate-50 border-0 rounded-2xl p-4 text-sm outline-none shadow-inner"></textarea>
-            <div class="flex gap-2">
-                <button onclick="updateIndividualLog()" class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-bold">내용 수정</button>
-                <button onclick="deleteIndividualLog()" class="flex-1 bg-rose-50 text-rose-500 py-4 rounded-2xl font-bold">기록 삭제</button>
-            </div>
-            <button onclick="toggleModal('editLogModal', false)" class="w-full text-slate-400 text-xs text-center">취소</button>
-        </div>
-    </div>
-
-    <nav class="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t flex justify-around p-5 shadow-2xl z-50">
-        <button onclick="switchTab(1)" class="nav-btn text-indigo-600 flex flex-col items-center"><i class="fas fa-users text-xl"></i><span class="text-[9px] font-bold mt-1">학생관리</span></button>
-        <button onclick="switchTab(2)" class="nav-btn text-slate-300 flex flex-col items-center"><i class="fas fa-check-double text-xl"></i><span class="text-[9px] font-bold mt-1">수행성적</span></button>
-        <button onclick="switchTab(3)" class="nav-btn text-slate-300 flex flex-col items-center"><i class="fas fa-th text-xl"></i><span class="text-[9px] font-bold mt-1">좌석배치</span></button>
-        <button onclick="switchTab(4)" class="nav-btn text-slate-300 flex flex-col items-center"><i class="fas fa-history text-xl"></i><span class="text-[9px] font-bold mt-1">기록정정</span></button>
+    <nav class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t flex justify-around p-5 shadow-2xl z-50">
+        <button onclick="switchTab(1)" class="nav-btn text-indigo-600 flex flex-col items-center"><i class="fas fa-calendar-check text-xl"></i><span class="text-[9px] font-bold mt-1">오늘출결</span></button>
+        <button onclick="switchTab(2)" class="nav-btn text-slate-300 flex flex-col items-center"><i class="fas fa-chart-line text-xl"></i><span class="text-[9px] font-bold mt-1">누적기록</span></button>
+        <button onclick="switchTab(3)" class="nav-btn text-slate-300 flex flex-col items-center"><i class="fas fa-file-invoice text-xl"></i><span class="text-[9px] font-bold mt-1">상세로그</span></button>
     </nav>
 
     <script>
-        let students = JSON.parse(localStorage.getItem('classData')) || [];
-        let logs = JSON.parse(localStorage.getItem('classLogs')) || [];
+        let students = JSON.parse(localStorage.getItem('att_students')) || [];
+        let logs = JSON.parse(localStorage.getItem('att_logs')) || [];
         let currentStudentId = "";
-        let currentStudentName = "";
-        let editingLogIndex = -1;
+        let currentFileBase64 = "";
+
+        // 오늘 날짜 기본 세팅
+        document.getElementById('currentDate').valueAsDate = new Date();
 
         function toggleModal(id, show) { document.getElementById(id).classList.toggle('active', show); }
 
-        function openLogModal(id, name) { 
-            currentStudentId = id; currentStudentName = name; 
-            document.getElementById('logModalTitle').innerText = name; 
-            toggleModal('logModal', true); 
-        }
-
-        function addAttendance(type) {
-            const s = students.find(s => s.id == currentStudentId);
-            s.attendance = (s.attendance || 0) + 1;
-            logs.unshift({ logId: Date.now(), studentId: currentStudentId, name: currentStudentName, type: '출결', isAttendance: true, content: `[${type}] 발생 (누적: ${s.attendance}회)`, time: new Date().toLocaleString() });
-            save(); toggleModal('logModal', false);
-        }
-
-        function submitLog() {
-            const val = document.getElementById('logText').value.trim();
-            if(!val) return;
-            logs.unshift({ logId: Date.now(), studentId: currentStudentId, name: currentStudentName, type: '상담', isAttendance: false, content: val, time: new Date().toLocaleString() });
-            save(); toggleModal('logModal', false);
-            document.getElementById('logText').value = "";
-        }
-
-        function openEditLog(index) {
-            editingLogIndex = index;
-            document.getElementById('editLogText').value = logs[index].content;
-            toggleModal('editLogModal', true);
-        }
-
-        function updateIndividualLog() {
-            if(editingLogIndex > -1) {
-                logs[editingLogIndex].content = document.getElementById('editLogText').value;
-                save(); toggleModal('editLogModal', false);
-            }
-        }
-
-        function deleteIndividualLog() {
-            if(confirm('삭제하시겠습니까?')) {
-                const targetLog = logs[editingLogIndex];
-                if(targetLog.isAttendance) {
-                    const s = students.find(s => s.id == targetLog.studentId);
-                    if(s && s.attendance > 0) s.attendance -= 1;
-                }
-                logs.splice(editingLogIndex, 1);
-                save(); toggleModal('editLogModal', false);
-            }
-        }
-
         function importStudents() {
-            const rawText = document.getElementById('rawList').value.trim();
-            if(!rawText) return;
-            const lines = rawText.split('\n').filter(l => l.trim() !== "");
-            students = lines.map((line, idx) => {
-                const parts = line.trim().split(/\s+/);
-                return { id: parts[0], name: parts[1] || "이름없음", points: 0, score: "", date: "", attendance: 0, seat: idx };
+            const raw = document.getElementById('rawList').value.trim();
+            if(!raw) return;
+            const lines = raw.split('\n');
+            students = lines.map(l => {
+                const p = l.trim().split(/\s+/);
+                return { id: p[0], name: p[1], unpaidCount: 0, sicknessCount: 0, approvedCount: 0 };
             });
             save(); toggleModal('setupModal', false);
         }
 
+        function handleFile(input) {
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                currentFileBase64 = reader.result;
+                document.getElementById('filePreview').innerText = "✅ 사진이 첨부되었습니다.";
+            };
+            if(file) reader.readAsDataURL(file);
+        }
+
+        function openAttModal(id, name) {
+            currentStudentId = id;
+            currentFileBase64 = "";
+            document.getElementById('attModalTitle').innerText = name;
+            document.getElementById('noteText').value = "";
+            document.getElementById('filePreview').innerText = "";
+            toggleModal('attModal', true);
+        }
+
+        function recordAtt(type) {
+            const date = document.getElementById('currentDate').value;
+            const note = document.getElementById('noteText').value.trim();
+            const student = students.find(s => s.id == currentStudentId);
+
+            // 누적 계산 (미인정/질병/인정 분류)
+            if(type.includes('미인정')) student.unpaidCount++;
+            else if(type.includes('질병')) student.sicknessCount++;
+            else if(type.includes('인정')) student.approvedCount++;
+
+            logs.unshift({
+                id: Date.now(),
+                studentId: currentStudentId,
+                name: student.name,
+                date: date,
+                type: type,
+                note: note,
+                photo: currentFileBase64
+            });
+
+            save();
+            toggleModal('attModal', false);
+        }
+
         function save() {
-            localStorage.setItem('classData', JSON.stringify(students));
-            localStorage.setItem('classLogs', JSON.stringify(logs));
-            if(document.getElementById('subjectTitle')) localStorage.setItem('classSubject', document.getElementById('subjectTitle').value);
+            localStorage.setItem('att_students', JSON.stringify(students));
+            localStorage.setItem('att_logs', JSON.stringify(logs));
             render();
         }
 
+        function getLevelClass(count) {
+            if(count >= 9) return 'level-critical';
+            if(count >= 5) return 'level-danger';
+            if(count >= 3) return 'level-warning';
+            return 'level-low';
+        }
+
         function render() {
-            const sList = document.getElementById('tab1');
-            if(!students.length) sList.innerHTML = `<div onclick="toggleModal('setupModal', true)" class="py-20 text-center text-slate-300 font-bold bg-white rounded-3xl border-2 border-dashed cursor-pointer">명단을 복사해 붙여넣으세요</div>`;
-            else sList.innerHTML = students.map(s => {
-                const isWarning = (s.attendance >= 3);
+            const date = document.getElementById('currentDate').value;
+            const dailyList = document.getElementById('dailyList');
+            
+            // 오늘 이 날짜의 로그들
+            const todaysLogs = logs.filter(l => l.date === date);
+            document.getElementById('statsSummary').innerText = `기록 완료: ${todaysLogs.length}명`;
+
+            dailyList.innerHTML = students.map(s => {
+                const log = todaysLogs.find(l => l.studentId === s.id);
+                const level = getLevelClass(s.unpaidCount);
                 return `
-                <div class="bg-white p-5 rounded-3xl border ${isWarning ? 'warning-card' : 'border-slate-100'} flex justify-between items-center shadow-sm">
-                    <div class="flex items-center gap-4 text-left">
-                        <div class="w-12 h-10 ${isWarning ? 'bg-rose-500 text-white' : 'bg-indigo-50 text-indigo-500'} rounded-xl flex items-center justify-center font-black text-[10px]">${s.id}</div>
-                        <div><h3 class="font-bold text-slate-800 text-lg">${s.name}</h3><p class="text-[10px] ${isWarning ? 'text-rose-600 font-black' : 'text-slate-400'}">출결 누적: ${s.attendance || 0}</p></div>
+                <div class="attendance-card ${level} p-5 rounded-[2rem] shadow-sm flex justify-between items-center">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-[10px] font-black">${s.id.slice(-2)}</div>
+                        <div>
+                            <h3 class="font-black text-lg">${s.name}</h3>
+                            <p class="sub-text text-[10px] text-slate-400 font-bold uppercase">미인정 누적: ${s.unpaidCount}회</p>
+                        </div>
                     </div>
-                    <div class="flex gap-2">
-                        <button onclick="updatePoint('${s.id}', 1)" class="w-10 h-10 bg-slate-50 text-indigo-600 rounded-xl font-bold"><i class="fas fa-star"></i></button>
-                        <button onclick="openLogModal('${s.id}', '${s.name}')" class="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center shadow-lg"><i class="fas fa-plus"></i></button>
-                    </div>
+                    ${log ? 
+                        `<div class="text-right"><span class="bg-indigo-600 text-white px-3 py-1.5 rounded-full text-[10px] font-black">${log.type}</span></div>` : 
+                        `<button onclick="openAttModal('${s.id}', '${s.name}')" class="w-10 h-10 bg-slate-900 text-white rounded-2xl flex items-center justify-center"><i class="fas fa-plus"></i></button>`
+                    }
                 </div>`;
             }).join('');
 
-            document.getElementById('scoreList').innerHTML = students.map(s => `
-                <div class="bg-white p-4 rounded-2xl border flex items-center gap-3 shadow-sm text-center text-xs">
-                    <div class="w-12 font-bold text-slate-300">${s.id}</div>
-                    <div class="w-16 font-black text-slate-700">${s.name}</div>
-                    <input type="date" value="${s.date}" onchange="updateScore('${s.id}', 'date', this.value)" class="flex-1 bg-slate-50 border-0 rounded-xl p-2 outline-none">
-                    <input type="number" value="${s.score}" onchange="updateScore('${s.id}', 'score', this.value)" class="w-14 bg-indigo-50 border-0 rounded-xl p-2 font-black text-indigo-600 text-center outline-none">
-                </div>`).join('');
+            // 누적 리포트
+            document.getElementById('totalUnpaid').innerText = students.reduce((a,b)=>a+b.unpaidCount, 0);
+            document.getElementById('totalSickness').innerText = students.reduce((a,b)=>a+b.sicknessCount, 0);
+            document.getElementById('totalApproved').innerText = students.reduce((a,b)=>a+b.approvedCount, 0);
 
-            const sorted = [...students].sort((a, b) => a.seat - b.seat);
-            document.getElementById('seatMap').innerHTML = sorted.map(s => `<div class="bg-white p-6 rounded-3xl border-2 border-slate-100 shadow-sm"><p class="text-[9px] text-slate-300 font-bold mb-1">${s.id}</p><p class="font-black text-slate-800">${s.name}</p></div>`).join('');
-
-            document.getElementById('logs').innerHTML = logs.map((l, idx) => `
-                <div onclick="openEditLog(${idx})" class="bg-white p-5 rounded-3xl border-l-8 ${l.isAttendance ? 'border-rose-500 bg-rose-50/30' : 'border-indigo-500'} shadow-sm space-y-1 text-left cursor-pointer active:scale-95 transition">
-                    <div class="flex justify-between items-center text-[10px] font-bold">
-                        <div><span class="text-slate-800 text-sm font-black">${l.name}</span> <span class="ml-2 px-2 py-0.5 rounded-full ${l.isAttendance ? 'bg-rose-100 text-rose-500' : 'bg-indigo-50 text-indigo-500'} font-bold text-[8px] uppercase">${l.type}</span></div>
-                        <span class="text-slate-300 text-[8px]">${l.time}</span>
+            document.getElementById('cumulativeList').innerHTML = students.sort((a,b) => b.unpaidCount - a.unpaidCount).map(s => `
+                <div class="bg-white p-4 rounded-2xl flex items-center justify-between text-xs">
+                    <span class="w-10 font-bold text-slate-400">${s.id}</span>
+                    <span class="w-20 font-black">${s.name}</span>
+                    <div class="flex gap-2 text-[10px] font-bold">
+                        <span class="text-rose-500">미 ${s.unpaidCount}</span>
+                        <span class="text-amber-500">질 ${s.sicknessCount}</span>
+                        <span class="text-emerald-500">인 ${s.approvedCount}</span>
                     </div>
-                    <p class="text-sm text-slate-600 font-medium">${l.content}</p>
-                </div>`).join('') || '<p class="text-center py-20 text-slate-300 font-bold uppercase tracking-widest">NO RECORDS</p>';
+                </div>
+            `).join('');
+
+            // 상세 로그
+            document.getElementById('allLogs').innerHTML = logs.map(l => `
+                <div class="bg-white p-5 rounded-3xl border-l-4 ${l.type.includes('미인정')?'border-rose-500':'border-indigo-400'} shadow-sm space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="font-black">${l.name} (${l.date})</span>
+                        <span class="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-2 py-1 rounded-md">${l.type}</span>
+                    </div>
+                    ${l.note ? `<p class="text-xs text-slate-600 font-medium bg-slate-50 p-2 rounded-lg">${l.note}</p>` : ''}
+                    ${l.photo ? `<div class="mt-2"><img src="${l.photo}" class="w-full h-32 object-cover rounded-xl border"></div>` : ''}
+                </div>
+            `).join('') || '<p class="py-20 text-center text-slate-300 font-bold">기록이 없습니다.</p>';
         }
 
-        function switchTab(n) { document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active')); document.getElementById(`tab${n}`).classList.add('active'); document.querySelectorAll('.nav-btn').forEach((b, i) => b.className = `nav-btn flex flex-col items-center ${i+1===n ? 'text-indigo-600' : 'text-slate-300'}`); }
-        function updatePoint(id, v) { const s = students.find(s=>s.id==id); if(s) { s.points += v; save(); } }
-        function updateScore(id, field, val) { const s = students.find(s => s.id == id); if(s) s[field] = val; localStorage.setItem('classData', JSON.stringify(students)); }
-        function shuffleSeats() { let ns = Array.from({length:students.length}, (_,i)=>i).sort(()=>Math.random()-0.5); students.forEach((s,i)=>s.seat=ns[i]); save(); }
-        function downloadTotalData() {
-            let c = `학번,이름,상점,미인정횟수,날짜,점수\n`;
-            students.forEach(s => { c += `${s.id},${s.name},${s.points},${s.attendance || 0},${s.date},${s.score}\n`; });
-            const b = new Blob(["\ufeff" + c], { type: 'text/csv;charset=utf-8;' });
-            const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = "곡선중_데이터.csv"; a.click();
+        function switchTab(n) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(`tab${n}`).classList.add('active');
+            document.querySelectorAll('.nav-btn').forEach((b, i) => b.className = `nav-btn flex flex-col items-center ${i+1===n ? 'text-indigo-600' : 'text-slate-300'}`);
         }
+
+        function initDay() { render(); }
+
+        function exportCSV() {
+            let csv = "\ufeff학번,이름,날짜,상태,특이사항\n";
+            logs.forEach(l => { csv += `${l.studentId},${l.name},${l.date},${l.type},"${l.note}"\n`; });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `곡선중_출결기록_${new Date().toLocaleDateString()}.csv`;
+            link.click();
+        }
+
         render();
     </script>
 </body>
