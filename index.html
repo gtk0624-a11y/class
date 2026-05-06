@@ -11,9 +11,9 @@
         body { font-family: 'Pretendard', sans-serif; -webkit-tap-highlight-color: transparent; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; items-center: center; justify-content: center; padding: 20px; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
         .modal.active { display: flex; }
-        .warning-card { background-color: #fee2e2 !important; border-color: #f87171 !important; }
+        .warning-card { background-color: #fee2e2 !important; border-color: #f87171 !important; border-width: 2px; }
     </style>
 </head>
 <body class="bg-slate-50 pb-28 text-slate-800">
@@ -24,7 +24,7 @@
                 <h1 class="text-lg font-black tracking-tighter">곡선중학교</h1>
                 <p class="text-[10px] opacity-80 font-bold uppercase tracking-widest">학급 통합 관리 시스템</p>
             </div>
-            <button onclick="toggleModal('setupModal', true)" class="text-[11px] font-bold bg-white/20 px-4 py-2 rounded-xl backdrop-blur-md border border-white/30">명단 관리</button>
+            <button onclick="toggleModal('setupModal', true)" class="text-[11px] font-bold bg-white/20 px-4 py-2 rounded-xl backdrop-blur-md border border-white/30">명단/파일 관리</button>
         </div>
     </header>
 
@@ -32,7 +32,7 @@
         <div id="tab1" class="tab-content active space-y-3"></div>
         <div id="tab2" class="tab-content space-y-4">
             <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 text-center space-y-3">
-                <div class="flex justify-between items-center"><span class="text-[10px] font-black text-indigo-500 uppercase">Score Sheet</span><button onclick="downloadTotalData()" class="text-[10px] font-bold text-slate-400 border px-2 py-1 rounded-lg">CSV 출력</button></div>
+                <div class="flex justify-between items-center"><span class="text-[10px] font-black text-indigo-500">Score Sheet</span><button onclick="downloadTotalData()" class="text-[10px] font-bold text-slate-400 border px-2 py-1 rounded-lg">CSV 출력</button></div>
                 <input type="text" id="subjectTitle" onchange="save()" placeholder="수행평가 항목명" class="w-full text-xl font-bold border-none outline-none p-0 text-slate-800 bg-transparent text-center focus:ring-0">
             </div>
             <div id="scoreList" class="space-y-2"></div>
@@ -42,30 +42,29 @@
             <div id="seatMap" class="grid grid-cols-2 gap-4"></div>
         </div>
         <div id="tab4" class="tab-content space-y-4">
-            <div class="flex justify-between items-center px-2">
-                <h2 class="font-bold text-slate-700">상담 및 출결 기록</h2>
-                <span class="text-[10px] text-slate-400">*기록을 터치하여 수정/삭제 가능</span>
-            </div>
-            <div id="logs" class="space-y-4"></div>
+            <div class="flex justify-between items-center px-2"><h2 class="font-bold text-slate-700">기록 아카이브</h2><span class="text-[9px] text-slate-400 font-bold">기록 클릭 시 수정/삭제 가능</span></div>
+            <div id="logs" class="space-y-3"></div>
         </div>
     </main>
 
     <!-- [명단 관리 모달] -->
     <div id="setupModal" class="modal">
-        <div class="bg-white rounded-[2.5rem] p-8 w-full max-w-sm space-y-5 shadow-2xl overflow-y-auto max-h-[90vh]">
-            <h2 class="font-black text-xl text-center">학생 명단 관리</h2>
-            <input type="file" id="fileInput" accept=".txt,.csv" class="hidden" onchange="handleFileUpload(event)">
-            <button onclick="document.getElementById('fileInput').click()" class="w-full bg-indigo-50 text-indigo-600 py-3 rounded-2xl border-2 border-dashed border-indigo-200 font-bold text-sm">한글/엑셀 파일 불러오기</button>
-            <textarea id="rawList" class="w-full h-40 bg-slate-50 border-0 rounded-2xl p-4 text-xs outline-none shadow-inner" placeholder="학번 이름"></textarea>
-            <div class="flex gap-2">
-                <button onclick="importStudents()" class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-bold">명단 적용</button>
-                <button onclick="if(confirm('모든 명단과 기록이 사라집니다. 초기화할까요?')){students=[];logs=[];save();}" class="flex-1 bg-rose-50 text-rose-500 py-4 rounded-2xl font-bold text-xs">전체 초기화</button>
+        <div class="bg-white rounded-[2.5rem] p-8 w-full max-w-sm space-y-5 shadow-2xl">
+            <div class="text-center"><h2 class="font-black text-xl">명단 및 파일 업로드</h2><p class="text-[10px] text-slate-400 mt-1 uppercase font-bold">File & List Management</p></div>
+            <div class="space-y-2">
+                <input type="file" id="fileInput" accept=".txt,.csv,.hwp" class="hidden" onchange="handleFileUpload(event)">
+                <button onclick="document.getElementById('fileInput').click()" class="w-full bg-indigo-50 text-indigo-600 py-4 rounded-2xl border-2 border-dashed border-indigo-200 font-bold text-xs uppercase"><i class="fas fa-file-import mr-2"></i>한글/엑셀 파일 업로드</button>
+                <textarea id="rawList" class="w-full h-32 bg-slate-50 border-0 rounded-2xl p-4 text-xs outline-none shadow-inner" placeholder="직접 수정 가능: [학번 이름] 형식"></textarea>
             </div>
-            <button onclick="toggleModal('setupModal', false)" class="w-full text-slate-400 text-xs py-2 text-center">닫기</button>
+            <div class="flex gap-2">
+                <button onclick="importStudents()" class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg">명단 적용</button>
+                <button onclick="if(confirm('모든 데이터가 삭제됩니다. 초기화할까요?')){students=[];logs=[];save();}" class="flex-1 bg-rose-50 text-rose-500 py-4 rounded-2xl font-bold text-xs">전체 초기화</button>
+            </div>
+            <button onclick="toggleModal('setupModal', false)" class="w-full text-slate-400 text-xs py-1">닫기</button>
         </div>
     </div>
 
-    <!-- [입력 모달] -->
+    <!-- [상담/출결 입력 모달] -->
     <div id="logModal" class="modal">
         <div class="bg-white rounded-[2.5rem] p-8 w-full max-w-sm space-y-4 shadow-2xl">
             <h2 id="logModalTitle" class="font-black text-2xl text-center text-indigo-600"></h2>
@@ -74,19 +73,23 @@
                 <button onclick="addAttendance('미인정 조퇴')" class="py-3 rounded-xl border-2 border-amber-100 bg-amber-50 text-amber-600 font-black text-sm">미인정 조퇴</button>
                 <button onclick="addAttendance('미인정 결과')" class="py-3 rounded-xl border-2 border-rose-100 bg-rose-50 text-rose-600 font-black text-sm">미인정 결과</button>
             </div>
-            <textarea id="logText" class="w-full h-24 bg-slate-50 border-0 rounded-2xl p-4 text-sm outline-none shadow-inner" placeholder="상담 내용 입력..."></textarea>
-            <button onclick="submitLog()" class="w-full bg-slate-800 text-white py-3 rounded-2xl font-bold">기록 저장</button>
-            <button onclick="toggleModal('logModal', false)" class="w-full text-slate-400 text-xs text-center">취소</button>
+            <div class="border-t pt-3 space-y-2">
+                <p class="text-[10px] font-bold text-slate-400">기타 상담 내용</p>
+                <textarea id="logText" class="w-full h-20 bg-slate-50 border-0 rounded-2xl p-4 text-sm outline-none" placeholder="내용 입력..."></textarea>
+                <button onclick="submitLog()" class="w-full bg-slate-800 text-white py-3 rounded-2xl font-bold">상담 저장</button>
+            </div>
+            <button onclick="toggleModal('logModal', false)" class="w-full text-slate-400 text-xs text-center">닫기</button>
         </div>
     </div>
 
-    <!-- [기록 수정 모달] -->
+    <!-- [기록 수정/정정 모달] -->
     <div id="editLogModal" class="modal">
         <div class="bg-white rounded-[2.5rem] p-8 w-full max-w-sm space-y-4 shadow-2xl">
-            <h2 class="font-black text-xl text-center">기록 수정/삭제</h2>
+            <h2 class="font-black text-xl text-center">기록 정정 및 삭제</h2>
+            <p class="text-[10px] text-center text-rose-500 font-bold leading-tight">출결 기록 삭제 시<br>누적 횟수가 즉시 자동차감 됩니다.</p>
             <textarea id="editLogText" class="w-full h-32 bg-slate-50 border-0 rounded-2xl p-4 text-sm outline-none shadow-inner"></textarea>
             <div class="flex gap-2">
-                <button onclick="updateIndividualLog()" class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-bold">수정 완료</button>
+                <button onclick="updateIndividualLog()" class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-bold">내용 수정</button>
                 <button onclick="deleteIndividualLog()" class="flex-1 bg-rose-50 text-rose-500 py-4 rounded-2xl font-bold">기록 삭제</button>
             </div>
             <button onclick="toggleModal('editLogModal', false)" class="w-full text-slate-400 text-xs text-center">취소</button>
@@ -94,10 +97,10 @@
     </div>
 
     <nav class="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t flex justify-around p-5 shadow-2xl z-50">
-        <button onclick="switchTab(1)" class="nav-btn text-indigo-600 flex flex-col items-center"><i class="fas fa-users text-xl"></i><span class="text-[9px] font-bold mt-1 uppercase">Students</span></button>
-        <button onclick="switchTab(2)" class="nav-btn text-slate-300 flex flex-col items-center"><i class="fas fa-check-double text-xl"></i><span class="text-[9px] font-bold mt-1 uppercase">Score</span></button>
-        <button onclick="switchTab(3)" class="nav-btn text-slate-300 flex flex-col items-center"><i class="fas fa-border-all text-xl"></i><span class="text-[9px] font-bold mt-1 uppercase">Seats</span></button>
-        <button onclick="switchTab(4)" class="nav-btn text-slate-300 flex flex-col items-center"><i class="fas fa-history text-xl"></i><span class="text-[9px] font-bold mt-1 uppercase">Logs</span></button>
+        <button onclick="switchTab(1)" class="nav-btn text-indigo-600 flex flex-col items-center"><i class="fas fa-users text-xl"></i><span class="text-[9px] font-bold mt-1">학생관리</span></button>
+        <button onclick="switchTab(2)" class="nav-btn text-slate-300 flex flex-col items-center"><i class="fas fa-check-double text-xl"></i><span class="text-[9px] font-bold mt-1">수행성적</span></button>
+        <button onclick="switchTab(3)" class="nav-btn text-slate-300 flex flex-col items-center"><i class="fas fa-th text-xl"></i><span class="text-[9px] font-bold mt-1">좌석배치</span></button>
+        <button onclick="switchTab(4)" class="nav-btn text-slate-300 flex flex-col items-center"><i class="fas fa-history text-xl"></i><span class="text-[9px] font-bold mt-1">기록수정</span></button>
     </nav>
 
     <script>
@@ -109,11 +112,18 @@
 
         function toggleModal(id, show) { document.getElementById(id).classList.toggle('active', show); }
 
+        // [파일 업로드 로직 강화]
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = e => { document.getElementById('rawList').value = e.target.result; };
+            reader.onload = e => {
+                let content = e.target.result;
+                // 한글 표 복사 시 발생하는 탭, 특수공백 등을 표준 공백으로 치환
+                content = content.replace(/[\t\u00A0\u3000]/g, ' ');
+                document.getElementById('rawList').value = content;
+                alert("파일 읽기 완료! [명단 적용]을 눌러주세요.");
+            };
             reader.readAsText(file, "EUC-KR");
         }
 
@@ -126,19 +136,20 @@
         function addAttendance(type) {
             const s = students.find(s => s.id == currentStudentId);
             s.attendance = (s.attendance || 0) + 1;
-            logs.unshift({ id: Date.now(), studentId: currentStudentId, name: currentStudentName, type: '출결', content: `[${type}] 발생 (누적: ${s.attendance}회)`, time: new Date().toLocaleString() });
+            // 고유 ID 부여하여 기록 (삭제 시 연동 위함)
+            logs.unshift({ logId: Date.now(), studentId: currentStudentId, name: currentStudentName, type: '출결', isAttendance: true, content: `[${type}] 발생 (누적: ${s.attendance}회)`, time: new Date().toLocaleString() });
             save(); toggleModal('logModal', false);
         }
 
         function submitLog() {
             const val = document.getElementById('logText').value.trim();
             if(!val) return;
-            logs.unshift({ id: Date.now(), studentId: currentStudentId, name: currentStudentName, type: '상담', content: val, time: new Date().toLocaleString() });
+            logs.unshift({ logId: Date.now(), studentId: currentStudentId, name: currentStudentName, type: '상담', isAttendance: false, content: val, time: new Date().toLocaleString() });
             save(); toggleModal('logModal', false);
             document.getElementById('logText').value = "";
         }
 
-        // --- 수정/삭제 핵심 로직 ---
+        // [기록 정정 및 자동차감 로직]
         function openEditLog(index) {
             editingLogIndex = index;
             document.getElementById('editLogText').value = logs[index].content;
@@ -148,20 +159,22 @@
         function updateIndividualLog() {
             if(editingLogIndex > -1) {
                 logs[editingLogIndex].content = document.getElementById('editLogText').value;
-                save();
-                toggleModal('editLogModal', false);
+                save(); toggleModal('editLogModal', false);
             }
         }
 
         function deleteIndividualLog() {
-            if(confirm('이 기록을 정말 삭제할까요? (출결 기록의 경우 누적 횟수는 수동으로 조정해야 합니다)')) {
-                const deletedLog = logs[editingLogIndex];
-                // 만약 출결 기록을 삭제하는 것이라면 누적 횟수도 -1 해줌
-                if(deletedLog.content.includes('미인정')) {
-                    const s = students.find(s => s.id == deletedLog.studentId);
-                    if(s && s.attendance > 0) s.attendance -= 1;
+            if(confirm('이 기록을 영구 삭제하시겠습니까?')) {
+                const targetLog = logs[editingLogIndex];
+                // 출결 기록인 경우 해당 학생의 누적 카운트 정정
+                if(targetLog.isAttendance) {
+                    const s = students.find(s => s.id == targetLog.studentId);
+                    if(s && s.attendance > 0) {
+                        s.attendance -= 1; // 즉시 자동차감
+                    }
                 }
                 logs.splice(editingLogIndex, 1);
+                // 삭제 후 남은 출결 기록들의 '누적 횟수' 텍스트를 재계산하지는 않으나, 메인 화면 숫자는 즉시 반영됨
                 save();
                 toggleModal('editLogModal', false);
             }
@@ -172,7 +185,8 @@
             if(!rawText) return;
             const lines = rawText.split('\n').filter(l => l.trim() !== "");
             students = lines.map((line, idx) => {
-                const parts = line.trim().split(/[\s\t\u00A0\u3000]+/);
+                const parts = line.trim().split(/\s+/);
+                // 명단 재업로드 시 기존 출결 데이터 보존 여부 선택 가능하나, 여기서는 초기화 등록 방식
                 return { id: parts[0], name: parts[1] || "무명", points: 0, score: "", date: "", attendance: 0, seat: idx };
             });
             save(); toggleModal('setupModal', false);
@@ -186,22 +200,22 @@
         }
 
         function render() {
-            const sub = localStorage.getItem('classSubject') || "";
-            if(document.getElementById('subjectTitle')) document.getElementById('subjectTitle').value = sub;
-            
             const sList = document.getElementById('tab1');
-            if(!students.length) sList.innerHTML = `<div onclick="toggleModal('setupModal', true)" class="py-20 text-center text-slate-300 font-bold bg-white rounded-3xl border-2 border-dashed">명단 관리에서 등록하세요</div>`;
+            if(!students.length) sList.innerHTML = `<div onclick="toggleModal('setupModal', true)" class="py-20 text-center text-slate-300 font-bold bg-white rounded-[2.5rem] border-2 border-dashed cursor-pointer">파일을 업로드하거나 명단을 입력하세요</div>`;
             else sList.innerHTML = students.map(s => {
                 const isWarning = (s.attendance >= 3);
                 return `
                 <div class="bg-white p-5 rounded-3xl border ${isWarning ? 'warning-card' : 'border-slate-100'} flex justify-between items-center shadow-sm">
-                    <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-4 text-left">
                         <div class="w-12 h-10 ${isWarning ? 'bg-rose-500 text-white' : 'bg-indigo-50 text-indigo-500'} rounded-xl flex items-center justify-center font-black text-[10px]">${s.id}</div>
-                        <div><h3 class="font-bold text-slate-800 text-lg">${s.name}</h3><p class="text-[10px] ${isWarning ? 'text-rose-600 font-black' : 'text-slate-400'}">미인정 누적: ${s.attendance || 0}회</p></div>
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-lg">${s.name}</h3>
+                            <p class="text-[10px] ${isWarning ? 'text-rose-600 font-black' : 'text-slate-400'} uppercase">Attendance: ${s.attendance || 0}</p>
+                        </div>
                     </div>
                     <div class="flex gap-2">
-                        <button onclick="updatePoint('${s.id}', 1)" class="w-10 h-10 bg-slate-50 text-indigo-600 rounded-xl font-bold"><i class="fas fa-star"></i></button>
-                        <button onclick="openLogModal('${s.id}', '${s.name}')" class="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center shadow-lg"><i class="fas fa-calendar-alt"></i></button>
+                        <button onclick="updatePoint('${s.id}', 1)" class="w-10 h-10 bg-slate-50 text-indigo-600 rounded-xl font-bold active:scale-90 transition"><i class="fas fa-star"></i></button>
+                        <button onclick="openLogModal('${s.id}', '${s.name}')" class="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center shadow-lg active:scale-90 transition"><i class="fas fa-plus"></i></button>
                     </div>
                 </div>`;
             }).join('');
@@ -210,7 +224,7 @@
                 <div class="bg-white p-4 rounded-2xl border flex items-center gap-3 shadow-sm text-center">
                     <div class="w-12 font-bold text-slate-300 text-[10px]">${s.id}</div>
                     <div class="w-16 font-black text-slate-700 text-sm">${s.name}</div>
-                    <input type="date" value="${s.date}" onchange="updateScore('${s.id}', 'date', this.value)" class="flex-1 bg-slate-50 border-0 rounded-xl p-2 text-[10px] outline-none font-bold text-slate-400">
+                    <input type="date" value="${s.date}" onchange="updateScore('${s.id}', 'date', this.value)" class="flex-1 bg-slate-50 border-0 rounded-xl p-2 text-[10px] outline-none">
                     <input type="number" value="${s.score}" onchange="updateScore('${s.id}', 'score', this.value)" class="w-14 bg-indigo-50 border-0 rounded-xl p-2 text-xs font-black text-indigo-600 text-center outline-none">
                 </div>`).join('');
 
@@ -218,9 +232,9 @@
             document.getElementById('seatMap').innerHTML = sorted.map(s => `<div class="bg-white p-6 rounded-3xl border-2 border-slate-100 shadow-sm"><p class="text-[9px] text-slate-300 font-bold mb-1">${s.id}</p><p class="font-black text-slate-800">${s.name}</p></div>`).join('');
 
             document.getElementById('logs').innerHTML = logs.map((l, idx) => `
-                <div onclick="openEditLog(${idx})" class="bg-white p-5 rounded-3xl border-l-8 ${l.type==='출결'?'border-rose-500':'border-indigo-500'} shadow-sm space-y-1 text-left cursor-pointer active:scale-95 transition">
+                <div onclick="openEditLog(${idx})" class="bg-white p-5 rounded-3xl border-l-8 ${l.isAttendance ? 'border-rose-500 bg-rose-50/30' : 'border-indigo-500'} shadow-sm space-y-1 text-left cursor-pointer active:scale-95 transition">
                     <div class="flex justify-between items-center text-[10px] font-bold">
-                        <div><span class="text-slate-800 text-sm font-black">${l.name}</span> <span class="ml-2 px-2 py-0.5 rounded-full ${l.type==='출결'?'bg-rose-50 text-rose-500':'bg-indigo-50 text-indigo-500'} font-bold text-[8px]">${l.type}</span></div>
+                        <div><span class="text-slate-800 text-sm font-black">${l.name}</span> <span class="ml-2 px-2 py-0.5 rounded-full ${l.isAttendance ? 'bg-rose-100 text-rose-500' : 'bg-indigo-50 text-indigo-500'} font-bold text-[8px] uppercase">${l.type}</span></div>
                         <span class="text-slate-300 text-[8px]">${l.time}</span>
                     </div>
                     <p class="text-sm text-slate-600 font-medium">${l.content}</p>
@@ -235,7 +249,7 @@
             let c = `학번,이름,상점,미인정횟수,날짜,점수\n`;
             students.forEach(s => { c += `${s.id},${s.name},${s.points},${s.attendance || 0},${s.date},${s.score}\n`; });
             const b = new Blob(["\ufeff" + c], { type: 'text/csv;charset=utf-8;' });
-            const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = "곡선중_학급관리데이터.csv"; a.click();
+            const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = "곡선중_학급데이터.csv"; a.click();
         }
         render();
     </script>
