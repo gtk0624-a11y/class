@@ -11,28 +11,25 @@
         body { font-family: 'Pretendard', sans-serif; -webkit-tap-highlight-color: transparent; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; items-center: center; justify-content: center; padding: 20px; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; items-center: center; justify-content: center; padding: 20px; }
         .modal.active { display: flex; }
-        .warning-card { background-color: #fee2e2 !important; border-color: #f87171 !important; } /* 미인정 3회 이상 시 빨간색 배경 */
+        .warning-card { background-color: #fee2e2 !important; border-color: #f87171 !important; }
     </style>
 </head>
-<body class="bg-slate-50 pb-28">
+<body class="bg-slate-50 pb-28 text-slate-800">
 
     <header class="bg-indigo-700 text-white p-5 sticky top-0 z-50 shadow-md">
         <div class="max-w-md mx-auto flex justify-between items-center">
             <div class="text-left">
                 <h1 class="text-lg font-black tracking-tighter">곡선중학교</h1>
-                <p class="text-[10px] opacity-80 font-bold uppercase tracking-widest leading-none">학급 통합 관리 시스템</p>
+                <p class="text-[10px] opacity-80 font-bold uppercase tracking-widest">학급 통합 관리 시스템</p>
             </div>
-            <button onclick="toggleModal('setupModal', true)" class="text-[11px] font-bold bg-white/20 px-4 py-2 rounded-xl backdrop-blur-md border border-white/30">명단관리</button>
+            <button onclick="toggleModal('setupModal', true)" class="text-[11px] font-bold bg-white/20 px-4 py-2 rounded-xl backdrop-blur-md border border-white/30">명단/파일 관리</button>
         </div>
     </header>
 
     <main class="max-w-md mx-auto p-4 space-y-6">
-        <!-- 탭 1: 학생 관리 및 출결 -->
         <div id="tab1" class="tab-content active space-y-3"></div>
-        
-        <!-- 탭 2: 수행평가 성적 -->
         <div id="tab2" class="tab-content space-y-4">
             <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 text-center space-y-3">
                 <div class="flex justify-between items-center"><span class="text-[10px] font-black text-indigo-500 uppercase">Score Sheet</span><button onclick="downloadTotalData()" class="text-[10px] font-bold text-slate-400 border px-2 py-1 rounded-lg">CSV 출력</button></div>
@@ -40,54 +37,67 @@
             </div>
             <div id="scoreList" class="space-y-2"></div>
         </div>
-
-        <!-- 탭 3: 좌석 배치 -->
         <div id="tab3" class="tab-content space-y-4 text-center">
-            <div class="flex justify-between items-center px-1"><h2 class="font-bold text-slate-700">좌석 배치도</h2><button onclick="shuffleSeats()" class="text-xs font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-full active:scale-95 transition">랜덤 섞기</button></div>
+            <div class="flex justify-between items-center px-1"><h2 class="font-bold text-slate-700">좌석 배치도</h2><button onclick="shuffleSeats()" class="text-xs font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-full">랜덤 섞기</button></div>
             <div id="seatMap" class="grid grid-cols-2 gap-4"></div>
         </div>
-
-        <!-- 탭 4: 상담 기록 -->
-        <div id="tab4" class="tab-content space-y-4">
-            <h2 class="font-bold px-1 text-slate-700">상담 및 출결 히스토리</h2>
-            <div id="logs" class="space-y-4"></div>
-        </div>
+        <div id="tab4" class="tab-content space-y-4"><h2 class="font-bold px-1 text-slate-700">상담 및 출결 히스토리</h2><div id="logs" class="space-y-4"></div></div>
     </main>
 
-    <!-- [명단 등록 모달] -->
+    <!-- [통합 명단 관리 모달] -->
     <div id="setupModal" class="modal">
-        <div class="bg-white rounded-[2.5rem] p-8 w-full max-w-sm space-y-5 shadow-2xl">
-            <h2 class="font-black text-xl text-center">명단 업데이트</h2>
-            <textarea id="rawList" class="w-full h-48 bg-slate-50 border-0 rounded-3xl p-5 text-sm outline-none shadow-inner" placeholder="예: 30201 강민준"></textarea>
-            <button onclick="importStudents()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold active:scale-95 transition">명단 적용하기</button>
-            <button onclick="toggleModal('setupModal', false)" class="text-center w-full text-slate-400 text-xs mt-2">닫기</button>
+        <div class="bg-white rounded-[2.5rem] p-8 w-full max-w-sm space-y-5 shadow-2xl overflow-y-auto max-h-[90vh]">
+            <h2 class="font-black text-xl text-center text-slate-800">명단/파일 통합 관리</h2>
+            
+            <div class="space-y-2">
+                <label class="text-xs font-bold text-indigo-600">방법 1. 파일 통째로 올리기 (추천)</label>
+                <input type="file" id="fileInput" accept=".txt,.csv,.hwp" class="hidden" onchange="handleFileUpload(event)">
+                <button onclick="document.getElementById('fileInput').click()" class="w-full bg-indigo-50 text-indigo-600 py-3 rounded-2xl border-2 border-dashed border-indigo-200 font-bold text-sm">
+                    한글/엑셀/텍스트 파일 선택
+                </button>
+            </div>
+
+            <div class="space-y-2 pt-2 border-t">
+                <label class="text-xs font-bold text-slate-400">방법 2. 직접 입력/수정</label>
+                <textarea id="rawList" class="w-full h-32 bg-slate-50 border-0 rounded-2xl p-4 text-xs outline-none shadow-inner" placeholder="학번 이름 (예: 30201 강민준)"></textarea>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="importStudents()" class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg">적용</button>
+                <button onclick="if(confirm('모든 명단을 삭제할까요?')){students=[];save();}" class="flex-1 bg-rose-50 text-rose-500 py-4 rounded-2xl font-bold">전체삭제</button>
+            </div>
+            <button onclick="toggleModal('setupModal', false)" class="w-full text-slate-400 text-xs text-center">닫기</button>
         </div>
     </div>
 
-    <!-- [상담 및 출결 입력 모달] -->
+    <!-- [상담 및 출결 모달] -->
     <div id="logModal" class="modal">
-        <div class="bg-white rounded-[2.5rem] p-8 w-full max-w-sm space-y-5 shadow-2xl">
-            <h2 id="logModalTitle" class="font-black text-2xl text-center text-slate-800 tracking-tighter"></h2>
-            <div class="grid grid-cols-3 gap-2" id="attendanceButtons">
-                <button onclick="addAttendance('미인정결석')" class="py-2 rounded-xl border text-[10px] font-bold bg-rose-50 text-rose-600 border-rose-100">미인정결</button>
-                <button onclick="addAttendance('미인정지각')" class="py-2 rounded-xl border text-[10px] font-bold bg-orange-50 text-orange-600 border-orange-100">미인정지</button>
-                <button onclick="addAttendance('미인정조퇴')" class="py-2 rounded-xl border text-[10px] font-bold bg-amber-50 text-amber-600 border-amber-100">미인정조</button>
+        <div class="bg-white rounded-[2.5rem] p-8 w-full max-w-sm space-y-4 shadow-2xl">
+            <h2 id="logModalTitle" class="font-black text-2xl text-center text-indigo-600"></h2>
+            
+            <div class="space-y-2">
+                <p class="text-[10px] font-bold text-slate-400 ml-1">출결 빠른 입력 (클릭 시 즉시 기록)</p>
+                <div class="grid grid-cols-1 gap-2">
+                    <button onclick="addAttendance('미인정 지각')" class="py-3 rounded-xl border-2 border-orange-100 bg-orange-50 text-orange-600 font-black text-sm">미인정 지각</button>
+                    <button onclick="addAttendance('미인정 조퇴')" class="py-3 rounded-xl border-2 border-amber-100 bg-amber-50 text-amber-600 font-black text-sm">미인정 조퇴</button>
+                    <button onclick="addAttendance('미인정 결과')" class="py-3 rounded-xl border-2 border-rose-100 bg-rose-50 text-rose-600 font-black text-sm">미인정 결과</button>
+                </div>
             </div>
-            <div class="grid grid-cols-2 gap-2">
-                <button onclick="selectType('학업')" class="type-btn py-3 rounded-2xl border text-xs font-bold bg-slate-50 text-slate-500">학업/진로</button>
-                <button onclick="selectType('교우')" class="type-btn py-3 rounded-2xl border text-xs font-bold bg-slate-50 text-slate-500">교우관계</button>
+
+            <div class="space-y-2 pt-2 border-t">
+                <p class="text-[10px] font-bold text-slate-400 ml-1">일반 상담 기록</p>
+                <textarea id="logText" class="w-full h-24 bg-slate-50 border-0 rounded-2xl p-4 text-sm outline-none shadow-inner" placeholder="내용 입력..."></textarea>
+                <button onclick="submitLog()" class="w-full bg-slate-800 text-white py-3 rounded-2xl font-bold">기록 저장</button>
             </div>
-            <textarea id="logText" class="w-full h-24 bg-slate-50 border-0 rounded-2xl p-5 text-sm outline-none shadow-inner" placeholder="상세 내용 입력..."></textarea>
-            <button onclick="submitLog()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-indigo-100">기록 저장</button>
-            <button onclick="toggleModal('logModal', false)" class="w-full text-slate-400 text-[11px] font-bold py-2 text-center">취소</button>
+            <button onclick="toggleModal('logModal', false)" class="w-full text-slate-400 text-xs text-center">닫기</button>
         </div>
     </div>
 
     <nav class="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t flex justify-around p-5 shadow-2xl z-50">
-        <button onclick="switchTab(1)" class="nav-btn text-indigo-600 flex flex-col items-center"><i class="fas fa-users text-xl"></i><span class="text-[9px] font-black mt-1 uppercase">Students</span></button>
-        <button onclick="switchTab(2)" class="nav-btn text-slate-300 flex flex-col items-center"><i class="fas fa-clipboard-check text-xl"></i><span class="text-[9px] font-black mt-1 uppercase">Score</span></button>
-        <button onclick="switchTab(3)" class="nav-btn text-slate-300 flex flex-col items-center"><i class="fas fa-th text-xl"></i><span class="text-[9px] font-black mt-1 uppercase">Seats</span></button>
-        <button onclick="switchTab(4)" class="nav-btn text-slate-300 flex flex-col items-center"><i class="fas fa-history text-xl"></i><span class="text-[9px] font-black mt-1 uppercase">Logs</span></button>
+        <button onclick="switchTab(1)" class="nav-btn text-indigo-600 flex flex-col items-center"><i class="fas fa-users text-xl"></i><span class="text-[9px] font-bold mt-1 uppercase">Students</span></button>
+        <button onclick="switchTab(2)" class="nav-btn text-slate-300 flex flex-col items-center"><i class="fas fa-check-double text-xl"></i><span class="text-[9px] font-bold mt-1 uppercase">Score</span></button>
+        <button onclick="switchTab(3)" class="nav-btn text-slate-300 flex flex-col items-center"><i class="fas fa-border-all text-xl"></i><span class="text-[9px] font-bold mt-1 uppercase">Seats</span></button>
+        <button onclick="switchTab(4)" class="nav-btn text-slate-300 flex flex-col items-center"><i class="fas fa-history text-xl"></i><span class="text-[9px] font-bold mt-1 uppercase">Logs</span></button>
     </nav>
 
     <script>
@@ -95,92 +105,77 @@
         let logs = JSON.parse(localStorage.getItem('classLogs')) || [];
         let currentStudentId = "";
         let currentStudentName = "";
-        let selectedType = "기타";
 
         function toggleModal(id, show) { document.getElementById(id).classList.toggle('active', show); }
-        function selectType(t) { selectedType = t; updateTypeUI(); }
-        function updateTypeUI() {
-            document.querySelectorAll('.type-btn').forEach(btn => {
-                if(btn.innerText.includes(selectedType)) btn.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600');
-                else { btn.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-600'); btn.classList.add('bg-slate-50', 'text-slate-500'); }
-            });
+
+        // [파일 읽기 기능 추가]
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                document.getElementById('rawList').value = text; // 파일 내용을 텍스트 영역에 자동으로 뿌려줌
+                alert("파일 내용을 읽어왔습니다. 아래 [적용] 버튼을 누르시면 명단이 등록됩니다.");
+            };
+            reader.readAsText(file, "EUC-KR"); // 한글 인코딩 고려
         }
 
         function openLogModal(id, name) { 
-            currentStudentId = id;
-            currentStudentName = name; 
+            currentStudentId = id; currentStudentName = name; 
             document.getElementById('logModalTitle').innerText = name; 
             toggleModal('logModal', true); 
-            updateTypeUI(); 
         }
 
         function addAttendance(type) {
             const s = students.find(s => s.id == currentStudentId);
-            if(!s.attendance) s.attendance = 0;
-            s.attendance += 1;
-            
-            const now = new Date();
-            logs.unshift({ 
-                name: currentStudentName, 
-                type: '출결', 
-                content: `[${type}] 발생 (누적 미인정: ${s.attendance}회)`, 
-                time: now.toLocaleString() 
-            });
-            save();
-            alert(`${currentStudentName} 학생 ${type} 처리되었습니다. (누적 ${s.attendance}회)`);
-            toggleModal('logModal', false);
+            s.attendance = (s.attendance || 0) + 1;
+            logs.unshift({ name: currentStudentName, type: '출결', content: `[${type}] 발생 (누적: ${s.attendance}회)`, time: new Date().toLocaleString() });
+            save(); toggleModal('logModal', false);
         }
 
         function submitLog() {
             const val = document.getElementById('logText').value.trim();
             if(!val) return;
-            logs.unshift({ name: currentStudentName, type: selectedType, content: val, time: new Date().toLocaleString() });
+            logs.unshift({ name: currentStudentName, type: '상담', content: val, time: new Date().toLocaleString() });
             save(); toggleModal('logModal', false);
         }
 
         function importStudents() {
             const rawText = document.getElementById('rawList').value.trim();
             if(!rawText) return;
-            const lines = rawText.split('\n');
-            const newList = [];
-            lines.forEach((line) => {
-                const parts = line.trim().split(/[\s\t\u00A0\u3000]+/); 
-                if(parts.length >= 2) {
-                    newList.push({ id: parts[0], name: parts[1], points: 0, score: "", date: "", attendance: 0, seat: newList.length });
-                }
+            const lines = rawText.split('\n').filter(l => l.trim() !== "");
+            students = lines.map((line, idx) => {
+                const parts = line.trim().split(/[\s\t\u00A0\u3000]+/);
+                return { id: parts[0], name: parts[1] || "이름없음", points: 0, score: "", date: "", attendance: 0, seat: idx };
             });
-            students = newList; save(); toggleModal('setupModal', false);
+            save(); toggleModal('setupModal', false);
         }
 
-        function updateScore(id, field, val) { const s = students.find(s => s.id == id); if(s) s[field] = val; localStorage.setItem('classData', JSON.stringify(students)); }
         function save() {
-            const sub = document.getElementById('subjectTitle') ? document.getElementById('subjectTitle').value : "";
-            localStorage.setItem('classSubject', sub);
             localStorage.setItem('classData', JSON.stringify(students));
             localStorage.setItem('classLogs', JSON.stringify(logs));
+            if(document.getElementById('subjectTitle')) localStorage.setItem('classSubject', document.getElementById('subjectTitle').value);
             render();
         }
 
         function render() {
-            const sub = localStorage.getItem('classSubject') || "";
-            if(document.getElementById('subjectTitle')) document.getElementById('subjectTitle').value = sub;
-            
             const sList = document.getElementById('tab1');
-            if(!students.length) sList.innerHTML = `<div onclick="toggleModal('setupModal', true)" class="py-20 text-center text-slate-300 font-bold bg-white rounded-[2rem] border-2 border-dashed border-slate-200 cursor-pointer">명단을 등록하세요</div>`;
+            if(!students.length) sList.innerHTML = `<div class="py-20 text-center text-slate-300 font-bold bg-white rounded-3xl border-2 border-dashed">명단/파일 관리에서 등록하세요</div>`;
             else sList.innerHTML = students.map(s => {
                 const isWarning = (s.attendance >= 3);
                 return `
-                <div class="bg-white p-5 rounded-3xl border ${isWarning ? 'warning-card' : 'border-slate-100'} flex justify-between items-center shadow-sm transition-all">
-                    <div class="flex items-center gap-4 text-left">
-                        <div class="w-12 h-10 ${isWarning ? 'bg-rose-100 text-rose-600' : 'bg-indigo-50 text-indigo-500'} rounded-xl flex items-center justify-center font-black text-[10px] tracking-tighter">${s.id}</div>
+                <div class="bg-white p-5 rounded-3xl border ${isWarning ? 'warning-card' : 'border-slate-100'} flex justify-between items-center shadow-sm">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-10 ${isWarning ? 'bg-rose-500 text-white' : 'bg-indigo-50 text-indigo-500'} rounded-xl flex items-center justify-center font-black text-[10px]">${s.id}</div>
                         <div>
-                            <h3 class="font-bold ${isWarning ? 'text-rose-700' : 'text-slate-800'} text-lg">${s.name}</h3>
-                            <p class="text-[9px] ${isWarning ? 'text-rose-500 font-black' : 'text-slate-400'}">미인정 누적: ${s.attendance || 0}회</p>
+                            <h3 class="font-bold text-slate-800 text-lg">${s.name}</h3>
+                            <p class="text-[10px] ${isWarning ? 'text-rose-600 font-black' : 'text-slate-400'}">미인정 출결 누적: ${s.attendance || 0}회</p>
                         </div>
                     </div>
                     <div class="flex gap-2">
-                        <button onclick="updatePoint('${s.id}', 1)" class="w-10 h-10 bg-slate-50 text-indigo-600 rounded-xl text-xs font-bold active:bg-indigo-100"><i class="fas fa-star"></i></button>
-                        <button onclick="openLogModal('${s.id}', '${s.name}')" class="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center text-xs shadow-lg"><i class="fas fa-calendar-check"></i></button>
+                        <button onclick="updatePoint('${s.id}', 1)" class="w-10 h-10 bg-slate-50 text-indigo-600 rounded-xl font-bold"><i class="fas fa-star"></i></button>
+                        <button onclick="openLogModal('${s.id}', '${s.name}')" class="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center shadow-lg"><i class="fas fa-calendar-alt"></i></button>
                     </div>
                 </div>`;
             }).join('');
@@ -189,18 +184,19 @@
                 <div class="bg-white p-4 rounded-2xl border flex items-center gap-3 shadow-sm text-center">
                     <div class="w-12 font-bold text-slate-300 text-[10px]">${s.id}</div>
                     <div class="w-16 font-black text-slate-700 text-sm">${s.name}</div>
-                    <input type="date" value="${s.date}" onchange="updateScore('${s.id}', 'date', this.value)" class="flex-1 bg-slate-50 border-0 rounded-xl p-2 text-[10px] outline-none font-bold text-slate-400">
+                    <input type="date" value="${s.date}" onchange="updateScore('${s.id}', 'date', this.value)" class="flex-1 bg-slate-50 border-0 rounded-xl p-2 text-[10px] outline-none">
                     <input type="number" value="${s.score}" onchange="updateScore('${s.id}', 'score', this.value)" class="w-14 bg-indigo-50 border-0 rounded-xl p-2 text-xs font-black text-indigo-600 text-center outline-none">
                 </div>`).join('');
 
             const sorted = [...students].sort((a, b) => a.seat - b.seat);
             document.getElementById('seatMap').innerHTML = sorted.map(s => `<div class="bg-white p-6 rounded-3xl border-2 border-slate-100 shadow-sm"><p class="text-[9px] text-slate-300 font-bold mb-1">${s.id}</p><p class="font-black text-slate-800">${s.name}</p></div>`).join('');
 
-            document.getElementById('logs').innerHTML = logs.map(l => `<div class="bg-white p-5 rounded-3xl border-l-8 ${l.type==='출결'?'border-rose-500':'border-indigo-500'} shadow-sm space-y-1 text-left"><div class="flex justify-between items-center text-[10px] font-bold"><div><span class="text-slate-800 text-sm font-black">${l.name}</span> <span class="ml-2 px-2 py-0.5 rounded-full ${l.type==='출결'?'bg-rose-50 text-rose-500':'bg-indigo-50 text-indigo-500'} font-bold text-[8px]">${l.type}</span></div><span class="text-slate-300 text-[8px]">${l.time}</span></div><p class="text-sm text-slate-600 font-medium">${l.content}</p></div>`).join('') || '<p class="text-center py-20 text-slate-300 font-bold">기록 없음</p>';
+            document.getElementById('logs').innerHTML = logs.map(l => `<div class="bg-white p-5 rounded-3xl border-l-8 ${l.type==='출결'?'border-rose-500':'border-indigo-500'} shadow-sm space-y-1 text-left"><div class="flex justify-between items-center text-[10px] font-bold"><div><span class="text-slate-800 text-sm font-black">${l.name}</span> <span class="ml-2 px-2 py-0.5 rounded-full ${l.type==='출결'?'bg-rose-50 text-rose-500':'bg-indigo-50 text-indigo-500'} font-bold text-[8px]">${l.type}</span></div><span class="text-slate-300 text-[8px]">${l.time}</span></div><p class="text-sm text-slate-600 font-medium">${l.content}</p></div>`).join('') || '<p class="text-center py-20 text-slate-300 font-bold tracking-widest">No Records</p>';
         }
 
         function switchTab(n) { document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active')); document.getElementById(`tab${n}`).classList.add('active'); document.querySelectorAll('.nav-btn').forEach((b, i) => b.className = `nav-btn flex flex-col items-center ${i+1===n ? 'text-indigo-600' : 'text-slate-300'}`); }
         function updatePoint(id, v) { const s = students.find(s=>s.id==id); if(s) { s.points += v; save(); } }
+        function updateScore(id, field, val) { const s = students.find(s => s.id == id); if(s) s[field] = val; localStorage.setItem('classData', JSON.stringify(students)); }
         function shuffleSeats() { let ns = Array.from({length:students.length}, (_,i)=>i).sort(()=>Math.random()-0.5); students.forEach((s,i)=>s.seat=ns[i]); save(); }
         function downloadTotalData() {
             let c = `학번,이름,상점,미인정횟수,날짜,점수\n`;
